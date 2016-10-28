@@ -1,0 +1,36 @@
+function _deps(){
+	app="git"
+
+	if ! hash $app 2>/dev/null; then
+		myzsh erorr "Couldn't find application ${app}"
+		return 1
+	fi
+}
+
+function releases(){
+	local category="$1"
+
+	if [[ $# -lt 1 ]]; then
+		myzsh error "Category of releases not provided"
+		return 1
+	fi
+
+	if [[ $(cat "$HOME/.projects" | grep $category | wc -l) -eq 0 ]]; then
+		myzsh error "$category not found in $HOME/.projects"
+		return 1
+	fi
+
+	local cwd=$PWD
+	for project in $(sed -n "/\[$category\]/,/^\[/p" "$HOME/.projects" | grep -v '^\[.*\]$' | sed -e 's/^[[:space:]]//g' -e 's/\ =\ /=/'); do
+		cd $(echo $project | cut -d "=" -f 2)
+		git checkout master  >/dev/null 2>&1 && git pull >/dev/null 2>&1
+		echo -n "`echo $project | cut -d "=" -f 1`: "
+		if [ $(git branch -a --contains $(git rev-parse master) | grep release | wc -l) -ge 1 ]; then
+			echo "released"
+		else
+			echo "not released"
+		fi
+	done
+	cd $cwd
+}
+# vim: filetype=zsh noexpandtab
